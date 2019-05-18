@@ -23,6 +23,10 @@ project=ACME
 
 ## Usage
 
+To run the tool in dry-run mode and test your task definition, run the tool with
+the `-d` flag. This will output ticket ID `9999` for any parent tasks and `1234`
+for any child tasks. No API requests will be sent and no tickets will be created
+
 ### Provide a string on the CLI
 ```
 m2j -s 'This is an example ticket @michael.heap {Documentation} {Node}'
