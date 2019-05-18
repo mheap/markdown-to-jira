@@ -1,0 +1,30 @@
+{
+  "name": "markdown-to-jira",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "cli-table": "^0.3.1",
+    "commander": "^2.20.0",
+    "jira-client": "^6.7.1",
+    "local-credentials": "0.0.2"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "eslint": "^5.16.0",
+    "eslint-plugin-prettier": "^3.1.0",
+    "mocha": "^6.1.3",
+    "prettier": "^1.17.1"
+  },
+  "scripts": {
+    "test": "mocha",
+    "lint": "eslint src bin/markdown-to-jira",
+    "lint-fix": "eslint --fix src bin/markdown-to-jira"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bin": {
+    "m2j": "./bin/markdown-to-jira"
+  }
+}

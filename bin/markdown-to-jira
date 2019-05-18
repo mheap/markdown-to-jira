@@ -1,0 +1,177 @@
+#!/usr/bin/env node
+
+const path = require("path");
+const fs = require("fs");
+const util = require("util");
+
+const Credentials = require("local-credentials");
+const program = require("commander");
+const JiraApi = require("jira-client");
+const Table = require("cli-table");
+
+const InputParser = require("../src/InputParser");
+
+const packageDetails = require(path.join(__dirname, "..", "package.json"));
+
+let jira;
+
+(async () => {
+  // Allow for command line arguments
+  program
+    .version(packageDetails.version)
+    .option(
+      "-c, --credentials [name]",
+      "Profile from ~/.atlassian/credentials to use",
+      "default"
+    )
+    .option("-s, --string [name]", "Accept a string on the command line")
+    .option("-f, --file [name]", "Read content from a file")
+    .option("-d, --dry", "Dry run - don't create any tickets")
+    .option("-v, --verbose", "Show requests being made")
+    .parse(process.argv);
+
+  // Read the config file if it exists
+  let credentials = {};
+  try {
+    credentials = await new Credentials("~/.atlassian/credentials").get(
+      program.credentials
+    );
+  } catch (e) {
+    console.log("Missing Credentials");
+    process.exit(1);
+  }
+
+  // Check that host, username and token exist
+  if (!credentials.host) {
+    console.log("Host is required (e.g. your_company.atlassian.net)");
+    process.exit(1);
+  }
+  if (!credentials.username) {
+    console.log("Username is required (this is your email address)");
+    process.exit(1);
+  }
+  if (!credentials.token) {
+    console.log(
+      "Token is required (see https://id.atlassian.com/manage/api-tokens)"
+    );
+    process.exit(1);
+  }
+
+  jira = new JiraApi({
+    protocol: "https",
+    host: credentials.host,
+    username: credentials.username,
+    password: credentials.token,
+    apiVersion: "2",
+    strictSSL: true
+  });
+
+  let content = "";
+
+  // Is there a filename? If so read the content from there
+  if (program.file) {
+    content = fs.readFileSync(program.file);
+  }
+
+  // If a string was provided, use that instead
+  if (program.string) {
+    content = "- " + program.string;
+  }
+
+  // Otherwise show an error
+  if (!content) {
+    console.log(
+      "No content provided. Please provide a filename or a string. See --help for more information"
+    );
+    process.exit(1);
+  }
+
+  // Parse the "markdown" format in to tickets
+  const tickets = InputParser(content.toString());
+
+  const table = new Table({
+    head: ["Key", "Title", "Assignee", "Components", "Parent"],
+    colWidths: [15, 30, 20, 15, 15]
+  });
+
+  for (t of tickets) {
+    let parent = await createIssue(
+      program.dry,
+      credentials.project,
+      t.title,
+      t.description,
+      t.assignee,
+      t.components
+    );
+    table.push([parent.key, t.title, t.assignee, t.components.join("\n"), ""]);
+
+    // If there are any children, create tickets using the parent key generated above
+    for (c of t.children) {
+      let child = await createIssue(
+        program.dry,
+        credentials.project,
+        c.title,
+        c.description,
+        c.assignee,
+        c.components,
+        parent.key
+      );
+      table.push([
+        child.key,
+        c.title,
+        c.assignee,
+        c.components.join("\n"),
+        parent.key
+      ]);
+    }
+  }
+
+  console.log(table.toString());
+})();
+
+function createIssue(
+  dryRun,
+  project,
+  title,
+  description,
+  assignee,
+  components,
+  parentIssue
+) {
+  let issueType = !parentIssue ? "Task" : "Sub-task";
+  let request = {
+    fields: {
+      components: components.map(v => {
+        return { name: v };
+      }),
+      assignee: {
+        name: assignee
+      },
+      project: {
+        key: project
+      },
+      summary: title,
+      description: description,
+      issuetype: {
+        name: issueType
+      }
+    }
+  };
+
+  if (parentIssue) {
+    request["fields"]["parent"] = { key: parentIssue };
+  }
+
+  // If we're in dry run mode, resolve early with a generated ID
+  if (program.dry) {
+    if (program.verbose) {
+      console.log(util.inspect(request.fields, false, 5));
+    }
+    let generatedKey = project + "-9999";
+    if (parentIssue) {
+      generatedKey = project + "-1234";
+    }
+    return Promise.resolve({ key: generatedKey });
+  }
+  return jira.addNewIssue(request);
+}
