@@ -105,9 +105,16 @@ let jira;
       t.title,
       t.description,
       t.assignee,
-      t.components
+      t.components,
+      program.parent
     );
-    table.push([parent.key, t.title, t.assignee, t.components.join("\n"), ""]);
+    table.push([
+      parent.key,
+      t.title,
+      t.assignee,
+      t.components.join("\n"),
+      program.parent
+    ]);
 
     // If there are any children, create tickets using the parent key generated above
     for (c of t.children) {
