@@ -28,6 +28,10 @@ let jira;
     .option("-f, --file [name]", "Read content from a file")
     .option("-d, --dry", "Dry run - don't create any tickets")
     .option("-v, --verbose", "Show requests being made")
+    .option(
+      "-p, --parent [parent]",
+      "Create ticket as child of a given parent ticket."
+    )
     .parse(process.argv);
 
   // Read the config file if it exists
@@ -101,9 +105,16 @@ let jira;
       t.title,
       t.description,
       t.assignee,
-      t.components
+      t.components,
+      program.parent
     );
-    table.push([parent.key, t.title, t.assignee, t.components.join("\n"), ""]);
+    table.push([
+      parent.key,
+      t.title,
+      t.assignee,
+      t.components.join("\n"),
+      program.parent
+    ]);
 
     // If there are any children, create tickets using the parent key generated above
     for (c of t.children) {
