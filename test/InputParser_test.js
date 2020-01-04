@@ -257,4 +257,56 @@ let input = `
 
         expect(() => { InputParser(input) }).to.throw("Unexpected indentation discovered");
     });
+
+it('should generate child tickets with the appropriate labels when provided with a matrix', function() {
+const input = `
+- This is a top level ticket [php,python,ruby]
+`;
+
+        const actual = InputParser(input);
+        expect(actual[0]).to.eql({
+            'assignee': '',
+            'components': [],
+            'title': 'This is a top level ticket',
+            'description': '',
+            'children': [
+                {'title': '[php] This is a top level ticket', 'description': '', 'assignee': '', 'components': [], 'labels': ['php']},
+                {'title': '[python] This is a top level ticket', 'description': '', 'assignee': '', 'components': [], 'labels': ['python']},
+                {'title': '[ruby] This is a top level ticket', 'description': '', 'assignee': '', 'components': [], 'labels': ['ruby']}
+            ]
+        });
+
+    });
+
+it('should respect matrix assignees', function() {
+const input = `
+- This is a top level ticket [php]
+`;
+
+        const actual = InputParser(input, {
+          'php': 'michael.heap'
+        });
+
+        expect(actual[0]).to.eql({
+            'assignee': '',
+            'components': [],
+            'title': 'This is a top level ticket',
+            'description': '',
+            'children': [
+                {'title': '[php] This is a top level ticket', 'description': '', 'assignee': 'michael.heap', 'components': [], 'labels': ['php']},
+            ]
+        });
+
+    });
+
+    it('should throw an error when a matrix is provided in addition to subtasks', function() {
+let input = `
+- This is a top level ticket [one, two]
+  - This sub ticket should cause an error
+`;
+
+        expect(() => { InputParser(input) }).to.throw("You cannot specify subtasks when using a matrix to create subtasks");
+    });
+
+
 });

@@ -26,6 +26,10 @@ let jira;
     )
     .option("-s, --string [name]", "Accept a string on the command line")
     .option("-f, --file [name]", "Read content from a file")
+    .option(
+      "-m, --matrix [tag=user.name,tag2=other.user]",
+      "Provide default assignees for matrix tickets"
+    )
     .option("-d, --dry", "Dry run - don't create any tickets")
     .option("-v, --verbose", "Show requests being made")
     .parse(process.argv);
@@ -86,12 +90,29 @@ let jira;
     process.exit(1);
   }
 
+  program.matrix = program.matrix || "";
+  let matrixAssignees = {};
+  if (program.matrix[0] == "@") {
+    let filename = program.matrix.slice(1);
+    try {
+      matrixAssignees = JSON.parse(fs.readFileSync(filename));
+    } catch (e) {
+      console.log(`Unable to read assignees file: ${filename}`);
+      process.exit(127);
+    }
+  } else {
+    program.matrix.split(",").forEach(m => {
+      let p = m.split("=");
+      matrixAssignees[p[0]] = p[1];
+    });
+  }
+
   // Parse the "markdown" format in to tickets
-  const tickets = InputParser(content.toString());
+  const tickets = InputParser(content.toString(), matrixAssignees);
 
   const table = new Table({
-    head: ["Key", "Title", "Assignee", "Components", "Parent"],
-    colWidths: [15, 30, 20, 15, 15]
+    head: ["Key", "Title", "Assignee", "Components", "Labels", "Parent"],
+    colWidths: [15, 30, 20, 15, 10, 15]
   });
 
   for (t of tickets) {
@@ -101,9 +122,17 @@ let jira;
       t.title,
       t.description,
       t.assignee,
-      t.components
+      t.components,
+      t.labels
     );
-    table.push([parent.key, t.title, t.assignee, t.components.join("\n"), ""]);
+    table.push([
+      parent.key,
+      t.title,
+      t.assignee,
+      t.components.join("\n"),
+      t.labels.join("\n"),
+      ""
+    ]);
 
     // If there are any children, create tickets using the parent key generated above
     for (c of t.children) {
@@ -114,6 +143,7 @@ let jira;
         c.description,
         c.assignee,
         c.components,
+        c.labels,
         parent.key
       );
       table.push([
@@ -121,6 +151,7 @@ let jira;
         c.title,
         c.assignee,
         c.components.join("\n"),
+        c.labels.join("\n"),
         parent.key
       ]);
     }
@@ -136,6 +167,7 @@ function createIssue(
   description,
   assignee,
   components,
+  labels,
   parentIssue
 ) {
   let issueType = !parentIssue ? "Task" : "Sub-task";
@@ -152,6 +184,7 @@ function createIssue(
       },
       summary: title,
       description: description,
+      labels: labels,
       issuetype: {
         name: issueType
       }

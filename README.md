@@ -44,12 +44,38 @@ Example content:
 - This is an example ticket @michael.heap {Documentation} {Node}
 ```
 
+### Provide users for matrix ticket creation
+
+See below for an example of `[matrix,ticket,creation]`
+
+```
+m2j -f /path/to/file -m "one=user.name,two=some.user"
+```
+
+Alternatively, you can provide a path to a file if you have a consistent set of users for matrix ticket creation
+
+```
+m2j -f /path/to/file -m "@/path/to/matrix-users"
+```
+
+This file should be valid JSON:
+
+```json
+{
+  "one": "user.name",
+  "two": "other.user"
+}
+```
+
+Any types without an assignee specified will be set to unassigned
+
 ## Ticket format
 
 ## Basic
 
 * `@user.name` - assign a ticket and any child tickets to a user
 * `{Name}` - add a component to a ticket. Supports multiple components
+* `[one,two]` - Create a parent ticket containing multiple children, one per entry in the list. Child ticket titles will be prefixed with the entry and it will be added as a label.
 * Any other text on the line will be used as the ticket title
 
 ### Advanced
@@ -66,6 +92,7 @@ If you're using the `-f` option to pass a filename there are additional options 
   - And this is a sub-ticket
     Subtickets can have descriptions too, and they inherit the assignee
     and components from the parent ticket
+- This ticket will have child tickets auto-created [one,two,three]
 ```
 
 

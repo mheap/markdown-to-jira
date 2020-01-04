@@ -1,4 +1,6 @@
-module.exports = function(input) {
+module.exports = function(input, matrixAssignees) {
+  matrixAssignees = matrixAssignees || {};
+
   // Extract ticket titles
   const lines = input.split("\n");
   const tickets = [];
@@ -33,6 +35,7 @@ module.exports = function(input) {
 
       // If we have an active ticket, push it in to the list
       if (ticket) {
+        ticket = handleMatrixTickets(ticket, matrix, matrixAssignees);
         tickets.push(ticket);
         ticket = null;
       }
@@ -49,12 +52,14 @@ module.exports = function(input) {
 
       [assignee, line] = extractAssignee(line);
       [components, line] = extractComponents(line);
+      [matrix, line] = extractMatrix(line);
 
       if (line) {
         ticket = {
           title: line,
           description: "",
           children: [],
+          labels: [],
           assignee: assignee,
           components: components
         };
@@ -83,6 +88,14 @@ module.exports = function(input) {
 
     // If the line starts with a - then it's a subticket title
     if (line[0] == "-") {
+      // You can use a matrix ([one,two]) to create subtickets, or provide them manually,
+      // but not both at the same time
+      if (matrix.length) {
+        throw new Error(
+          "You cannot specify subtasks when using a matrix to create subtasks"
+        );
+      }
+
       // If it's a new subticket, push in the old one
       if (subTicket) {
         ticket.children.push(subTicket);
@@ -118,6 +131,7 @@ module.exports = function(input) {
     ticket.children.push(subTicket);
   }
   if (ticket) {
+    ticket = handleMatrixTickets(ticket, matrix, matrixAssignees);
     tickets.push(ticket);
   }
 
@@ -162,4 +176,38 @@ function extractComponents(line) {
   }
 
   return [components, line];
+}
+
+function extractMatrix(line) {
+  let re = /\[(.*)\]/g;
+  let matches = re.exec(line);
+
+  if (!matches) {
+    return [[], line];
+  }
+
+  let matrix = [];
+  if (matches[1]) {
+    matrix = matches[1].split(",").map(m => m.trim());
+  }
+
+  line = line.replace(matches[0], "").trim();
+
+  return [matrix, line];
+}
+
+function handleMatrixTickets(ticket, matrix, matrixAssignees) {
+  if (matrix.length) {
+    for (let m of matrix) {
+      let subticket = Object.assign({}, ticket);
+      subticket.title = `[${m}] ${subticket.title}`;
+      subticket.labels = [m];
+      delete subticket.children;
+      if (matrixAssignees[m]) {
+        subticket.assignee = matrixAssignees[m];
+      }
+      ticket.children.push(subticket);
+    }
+  }
+  return ticket;
 }
