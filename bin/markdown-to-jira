@@ -118,6 +118,9 @@ let jira;
   const userIds = {};
   const users = await jira.fetchUsers(userNames);
   for (const u of users) {
+    if (u.accountId == "unknown") {
+      continue;
+    }
     userIds[u.username] = u.accountId;
   }
 
