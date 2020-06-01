@@ -68,11 +68,15 @@ let jira;
 
   // A bit of a hack, but the endpoint isn't available in the SDK
   jira.fetchUsers = function(list) {
-    const names = Array.from(list).join(",");
+    const names = Array.from(list)
+      .map((n) => {
+        return `&key=${n}`;
+      })
+      .join("");
     return this.doRequest(
       this.makeRequestHeader(
         this.makeUri({
-          pathname: "/user/bulk/migration?username=" + names,
+          pathname: "/user/bulk/migration?maxResults=1000" + names,
         }),
         {
           method: "GET",
@@ -121,7 +125,7 @@ let jira;
     if (u.accountId == "unknown") {
       continue;
     }
-    userIds[u.username] = u.accountId;
+    userIds[u.key] = u.accountId;
   }
 
   // Validate that all usernames provided were valid
