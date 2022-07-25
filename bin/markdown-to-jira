@@ -131,13 +131,15 @@ let jira;
   // Validate that all usernames provided were valid
   // Parent tickets
   tickets = tickets.map((t) => {
-    if (!userIds[t.assignee]) {
-      throw new Error(`Invalid assignee: ${t.assignee}`);
+    if (t.assignee) {
+      if (!userIds[t.assignee]) {
+        throw new Error(`Invalid assignee: ${t.assignee}`);
+      }
+      t.assignee = {
+        name: t.assignee,
+        id: userIds[t.assignee],
+      };
     }
-    t.assignee = {
-      name: t.assignee,
-      id: userIds[t.assignee],
-    };
 
     // Child tickets
     t.children = t.children.map((c) => {
@@ -171,7 +173,7 @@ let jira;
     table.push([
       parent.key,
       t.title,
-      t.assignee.name,
+      t.assignee.name || "",
       t.components.join("\n"),
       "",
     ]);
