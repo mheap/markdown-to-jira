@@ -41,6 +41,8 @@ module.exports = function(input) {
             break;
         }
       }
+
+      continue;
     }
 
     // Is this a top level entry? If it has no leading whitespace
@@ -63,6 +65,11 @@ module.exports = function(input) {
       if (ticket) {
         tickets.push(ticket);
         ticket = null;
+      }
+
+      // If we have a header in this file (as markdown spec mandates) we can ignore it.
+      if (line[0] && line[0] === "#" && !ticket) {
+        continue;
       }
 
       // If the line has a length, but it's not a new ticket entry
@@ -89,7 +96,7 @@ module.exports = function(input) {
           storyPoints: storyPoints,
           epic: epic,
           story: story,
-          team: team,
+          team: team
         };
       }
 
@@ -124,7 +131,7 @@ module.exports = function(input) {
       line = removeLeadingDash(line);
       [assignee, line] = extractAssignee(line);
       [components, line] = extractComponents(line);
-      [storyPoints, line] = extractStoryPoints(line);     
+      [storyPoints, line] = extractStoryPoints(line);
 
       // Persist the parent assignee if we don't have one in this line
       assignee = assignee || ticket.assignee;
@@ -138,7 +145,7 @@ module.exports = function(input) {
         storyPoints: storyPoints,
         epic: epic,
         story: story,
-        team: team,
+        team: team
       };
       continue;
     }

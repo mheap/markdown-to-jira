@@ -20,12 +20,12 @@ let jira;
   program
     .version(packageDetails.version)
     .option(
-      "-c, --credentials [name]",
+      "-c, --credentials [value]",
       "Profile from ~/.atlassian/credentials to use",
       "default"
     )
-    .option("-s, --string [name]", "Accept a string on the command line")
-    .option("-f, --file [name]", "Read content from a file")
+    .option("-s, --string [value]", "Accept a string on the command line")
+    .option("-f, --file [value]", "Read content from a file")
     .option("-d, --dry", "Dry run - don't create any tickets")
     .option("-v, --verbose", "Show requests being made")
     .parse(process.argv);
@@ -63,13 +63,27 @@ let jira;
     username: credentials.username,
     password: credentials.token,
     apiVersion: "2",
-    strictSSL: true,
+    strictSSL: true
   });
+
+  jira.fetchUserV2 = async function(name) {
+    return await this.doRequest(
+      this.makeRequestHeader(
+        this.makeUri({
+          pathname: "/user/search?query=" + name
+        }),
+        {
+          method: "GET",
+          followAllRedirects: true
+        }
+      )
+    );
+  };
 
   // A bit of a hack, but the endpoint isn't available in the SDK
   jira.fetchUsers = function(list) {
     const names = Array.from(list)
-      .map((n) => {
+      .map(n => {
         return `&key=${n}`;
       })
       .join("");
@@ -80,7 +94,7 @@ let jira;
         }),
         {
           method: "GET",
-          followAllRedirects: true,
+          followAllRedirects: true
         }
       )
     );
@@ -91,7 +105,7 @@ let jira;
   // Is there a filename? If so read the content from there
   if (program.file) {
     content = fs.readFileSync(program.file);
-  } 
+  }
 
   // If a string was provided, use that instead
   if (program.string) {
@@ -110,16 +124,58 @@ let jira;
   let tickets = InputParser(content.toString());
 
   // Build a list of usernames encountered
-  const userNames = new Set();
-  for (t of tickets) {
-    userNames.add(t.assignee);
-    for (c of t.children) {
-      userNames.add(c.assignee);
-    }
+  const creds = credentials.username.split("@");
+  let domain = "";
+
+  // Parse out the domain, if supplied.
+  if (creds.length === 2) {
+    domain = creds[1];
   }
 
   // Map assignee name to IDs
   const userIds = {};
+  const containsKey = (keys, name) => {
+    for (const i = 0; i < keys.length; i++) {
+      if (keys[i] === name) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  const getAssignee = source => {
+    let assignee = source;
+
+    if (domain && !assignee.indexOf(domain) > -1) {
+      assignee = `${assignee}@${domain}`;
+    }
+
+    return assignee;
+  };
+
+  for (t of tickets) {
+    let assignee = getAssignee(t.assignee);
+
+    if (!containsKey(Object.keys(userIds), assignee)) {
+      //const user = await jira.fetchUserV2(assignee);
+      const user = await jira.searchUsers({ query: assignee });
+      userIds[assignee] = user.length > 0 ? user[0].accountId : undefined;
+    }
+
+    for (c of t.children) {
+      let assignee = getAssignee(c.assignee);
+
+      if (!containsKey(Object.keys(userIds), assignee)) {
+        //const user = await jira.fetchUserV2(assignee);
+        const user = await jira.searchUsers({ query: assignee });
+        userIds[assignee] = user.length > 0 ? user[0].accountId : undefined;
+      }
+    }
+  }
+
+  /*
+  const allUsers = await jira.fetchUsersV2();
   const users = await jira.fetchUsers(userNames);
   for (const u of users) {
     if (u.accountId == "unknown") {
@@ -127,10 +183,11 @@ let jira;
     }
     userIds[u.key] = u.accountId;
   }
+*/
 
   // Validate that all usernames provided were valid
   // Parent tickets
-  tickets = tickets.map((t) => {
+  tickets = tickets.map(t => {
     if (t.assignee) {
       if (!userIds[t.assignee]) {
         throw new Error(`Invalid assignee: ${t.assignee}`);
