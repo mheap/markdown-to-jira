@@ -5,6 +5,7 @@ module.exports = function(input) {
 
   const leadingWhitespace = /^\s+/;
 
+  let frontMatter;
   let ticket;
   let subTicket;
   let blankLinesInDescriptions = "";
