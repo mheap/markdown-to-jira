@@ -13,6 +13,13 @@ const InputParser = require("../src/InputParser");
 
 const packageDetails = require(path.join(__dirname, "..", "package.json"));
 
+const teams = {
+  "Cloud Integrations": 3,
+  "Continuous Improvement": 1,
+  Platform: 2,
+  "Engineering Fundamentals": 4
+};
+
 let jira;
 
 (async () => {
@@ -66,40 +73,6 @@ let jira;
     strictSSL: true
   });
 
-  jira.fetchUserV2 = async function(name) {
-    return await this.doRequest(
-      this.makeRequestHeader(
-        this.makeUri({
-          pathname: "/user/search?query=" + name
-        }),
-        {
-          method: "GET",
-          followAllRedirects: true
-        }
-      )
-    );
-  };
-
-  // A bit of a hack, but the endpoint isn't available in the SDK
-  jira.fetchUsers = function(list) {
-    const names = Array.from(list)
-      .map(n => {
-        return `&key=${n}`;
-      })
-      .join("");
-    return this.doRequest(
-      this.makeRequestHeader(
-        this.makeUri({
-          pathname: "/user/bulk/migration?maxResults=1000" + names,
-        }),
-        {
-          method: "GET",
-          followAllRedirects: true
-        }
-      )
-    );
-  };
-
   let content = "";
 
   // Is there a filename? If so read the content from there
@@ -135,7 +108,7 @@ let jira;
   // Map assignee name to IDs
   const userIds = {};
   const containsKey = (keys, name) => {
-    for (const i = 0; i < keys.length; i++) {
+    for (let i = 0; i < keys.length; i++) {
       if (keys[i] === name) {
         return true;
       }
@@ -158,8 +131,8 @@ let jira;
     let assignee = getAssignee(t.assignee);
 
     if (!containsKey(Object.keys(userIds), assignee)) {
-      //const user = await jira.fetchUserV2(assignee);
       const user = await jira.searchUsers({ query: assignee });
+
       userIds[assignee] = user.length > 0 ? user[0].accountId : undefined;
     }
 
@@ -167,45 +140,38 @@ let jira;
       let assignee = getAssignee(c.assignee);
 
       if (!containsKey(Object.keys(userIds), assignee)) {
-        //const user = await jira.fetchUserV2(assignee);
         const user = await jira.searchUsers({ query: assignee });
+
         userIds[assignee] = user.length > 0 ? user[0].accountId : undefined;
       }
     }
   }
 
-  /*
-  const allUsers = await jira.fetchUsersV2();
-  const users = await jira.fetchUsers(userNames);
-  for (const u of users) {
-    if (u.accountId == "unknown") {
-      continue;
-    }
-    userIds[u.key] = u.accountId;
-  }
-*/
-
   // Validate that all usernames provided were valid
   // Parent tickets
   tickets = tickets.map(t => {
-    if (t.assignee) {
-      if (!userIds[t.assignee]) {
-        throw new Error(`Invalid assignee: ${t.assignee}`);
+    let assignee = getAssignee(t.assignee);
+
+    if (assignee) {
+      if (!userIds[assignee]) {
+        throw new Error(`Invalid assignee: ${assignee}`);
       }
       t.assignee = {
-        name: t.assignee,
-        id: userIds[t.assignee],
+        name: assignee,
+        id: userIds[assignee]
       };
     }
 
     // Child tickets
-    t.children = t.children.map((c) => {
-      if (!userIds[c.assignee]) {
-        throw new Error(`Invalid assignee: ${c.assignee}`);
+    t.children = t.children.map(c => {
+      assignee = getAssignee(c.assignee);
+
+      if (!userIds[assignee]) {
+        throw new Error(`Invalid assignee: ${cssignee}`);
       }
       c.assignee = {
-        name: c.assignee,
-        id: userIds[c.assignee],
+        name: assignee,
+        id: userIds[assignee]
       };
       return c;
     });
@@ -214,8 +180,18 @@ let jira;
   });
 
   const table = new Table({
-    head: ["Key", "Title", "Assignee", "Components", "Parent"],
-    colWidths: [15, 30, 20, 15, 15],
+    head: [
+      "Key",
+      "Title",
+      "Assignee",
+      "Components",
+      "Story Pts",
+      "Parent",
+      "Epic",
+      "Story",
+      "Team"
+    ],
+    colWidths: [5, 25, 15, 10, 10, 10, 5, 5, 10]
   });
 
   for (t of tickets) {
@@ -225,14 +201,23 @@ let jira;
       t.title,
       t.description,
       t.assignee.id,
-      t.components
+      t.components,
+      t.storyPoints,
+      undefined,
+      t.epic,
+      t.story,
+      t.team
     );
     table.push([
       parent.key,
       t.title,
       t.assignee.name || "",
       t.components.join("\n"),
+      t.storyPoints,
       "",
+      t.epic,
+      t.story,
+      t.team
     ]);
 
     // If there are any children, create tickets using the parent key generated above
@@ -244,14 +229,22 @@ let jira;
         c.description,
         c.assignee.id,
         c.components,
-        parent.key
+        c.storyPoints,
+        parent.key,
+        undefined,
+        c.story,
+        undefined
       );
       table.push([
         child.key,
         c.title,
         c.assignee.name,
         c.components.join("\n"),
+        c.storyPoints,
         parent.key,
+        "",
+        c.story,
+        ""
       ]);
     }
   }
@@ -259,14 +252,18 @@ let jira;
   console.log(table.toString());
 })();
 
-function createIssue(
+async function createIssue(
   dryRun,
   project,
   title,
   description,
   assignee,
   components,
-  parentIssue
+  storyPoints,
+  parentIssue,
+  epic,
+  story,
+  team
 ) {
   let issueType = !parentIssue ? "Task" : "Sub-task";
   let request = {
@@ -275,18 +272,34 @@ function createIssue(
         return { name: v };
       }),
       assignee: {
-        id: assignee,
+        id: assignee
       },
       project: {
-        key: project,
+        key: project
       },
       summary: title,
       description: description,
       issuetype: {
-        name: issueType,
-      },
-    },
+        name: issueType
+      }
+    }
   };
+
+  if (epic) {
+    request["fields"]["customfield_10014"] = epic;
+  }
+
+  if (storyPoints && storyPoints > 0) {
+    request["fields"]["customfield_10025"] = storyPoints;
+  }
+
+  if (team) {
+    if (Number.isInteger(team)) {
+      request["fields"]["customfield_10001"] = `${team}`;
+    } else {
+      request["fields"]["customfield_10001"] = `${teams[team]}`;
+    }
+  }
 
   if (parentIssue) {
     request["fields"]["parent"] = { key: parentIssue };
@@ -303,5 +316,33 @@ function createIssue(
     }
     return Promise.resolve({ key: generatedKey });
   }
-  return jira.addNewIssue(request);
+
+  let result;
+  let linkResult;
+
+  try {
+    result = await jira.addNewIssue(request);
+  } catch (error) {
+    return Promise.reject(error);
+  }
+
+  if (story) {
+    try {
+      linkResult = await jira.issueLink({
+        type: {
+          name: "Relates"
+        },
+        inwardIssue: {
+          key: result.key
+        },
+        outwardIssue: {
+          key: story
+        }
+      });
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  }
+
+  return Promise.resolve(result);
 }

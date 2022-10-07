@@ -221,7 +221,7 @@ function extractStoryPoints(line) {
       );
     }
 
-    storyPoints = parseInt(matches[0].substr(1));
+    storyPoints = parseFloat(matches[0].substr(1));
 
     line = line.replace(matches[0], "").trim();
   }

@@ -14,9 +14,10 @@
             "autoAttachChildProcesses": true,
             "program": "${workspaceFolder}/bin/markdown-to-jira",
             "args": [
+                "-c",
+                "sandbox",
                 "-f",
-                "${workspaceFolder}/test/AS-13605.md",
-                "-d"
+                "${workspaceFolder}/test/SAND-8.md"
             ]
         }
     ]
