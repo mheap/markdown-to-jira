@@ -9,11 +9,38 @@ module.exports = function(input) {
   let ticket;
   let subTicket;
   let blankLinesInDescriptions = "";
+  let epic;
+  let story;
+  let team;
 
   for (line of lines) {
     // Ignore blank lines unless we could be in a description
     if (!line.trim() && !ticket) {
       continue;
+    }
+
+    if (line.trim() === "---") {
+      frontMatter = !frontMatter;
+      continue;
+    }
+
+    // Parse the data from our Front Matter template
+    if (frontMatter) {
+      const pairs = line.split(":");
+
+      if (pairs.length === 2) {
+        switch (pairs[0].toLowerCase().trim()) {
+          case "epic":
+            epic = pairs[1].trim();
+            break;
+          case "story":
+            story = pairs[1].trim();
+            break;
+          case "team":
+            team = pairs[1].trim();
+            break;
+        }
+      }
     }
 
     // Is this a top level entry? If it has no leading whitespace
@@ -50,6 +77,7 @@ module.exports = function(input) {
 
       [assignee, line] = extractAssignee(line);
       [components, line] = extractComponents(line);
+      [storyPoints, line] = extractStoryPoints(line);
 
       if (line) {
         ticket = {
@@ -57,7 +85,11 @@ module.exports = function(input) {
           description: "",
           children: [],
           assignee: assignee,
-          components: components
+          components: components,
+          storyPoints: storyPoints,
+          epic: epic,
+          story: story,
+          team: team,
         };
       }
 
@@ -92,6 +124,7 @@ module.exports = function(input) {
       line = removeLeadingDash(line);
       [assignee, line] = extractAssignee(line);
       [components, line] = extractComponents(line);
+      [storyPoints, line] = extractStoryPoints(line);     
 
       // Persist the parent assignee if we don't have one in this line
       assignee = assignee || ticket.assignee;
@@ -101,7 +134,11 @@ module.exports = function(input) {
         components: components,
         assignee: assignee,
         title: line,
-        description: ""
+        description: "",
+        storyPoints: storyPoints,
+        epic: epic,
+        story: story,
+        team: team,
       };
       continue;
     }
@@ -163,4 +200,24 @@ function extractComponents(line) {
   }
 
   return [components, line];
+}
+
+function extractStoryPoints(line) {
+  let re = /\+\d{1,}/g;
+  let matches = line.match(re);
+  let storyPoints = 0;
+
+  if (matches) {
+    if (matches.length > 1) {
+      throw new Error(
+        "Multiple story point assignments for a single tikcet are not supported"
+      );
+    }
+
+    storyPoints = parseInt(matches[0].substr(1));
+
+    line = line.replace(matches[0], "").trim();
+  }
+
+  return [storyPoints, line];
 }
