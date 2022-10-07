@@ -91,7 +91,7 @@ let jira;
   // Is there a filename? If so read the content from there
   if (program.file) {
     content = fs.readFileSync(program.file);
-  }
+  } 
 
   // If a string was provided, use that instead
   if (program.string) {
