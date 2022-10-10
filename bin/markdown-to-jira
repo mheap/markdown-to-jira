@@ -189,9 +189,10 @@ let jira;
       "Parent",
       "Epic",
       "Story",
-      "Team"
+      "Team", 
+      "Classification"
     ],
-    colWidths: [5, 25, 15, 10, 10, 10, 5, 5, 10]
+    colWidths: [15, 30, 15, 15, 15, 10, 10, 10, 15, 15]
   });
 
   for (t of tickets) {
@@ -206,7 +207,8 @@ let jira;
       undefined,
       t.epic,
       t.story,
-      t.team
+      t.team,
+      t.classification
     );
     table.push([
       parent.key,
@@ -217,7 +219,8 @@ let jira;
       "",
       t.epic,
       t.story,
-      t.team
+      t.team,
+      t.classification
     ]);
 
     // If there are any children, create tickets using the parent key generated above
@@ -233,7 +236,8 @@ let jira;
         parent.key,
         undefined,
         c.story,
-        undefined
+        undefined,
+        c.classification
       );
       table.push([
         child.key,
@@ -244,7 +248,8 @@ let jira;
         parent.key,
         "",
         c.story,
-        ""
+        "",
+        c.classification
       ]);
     }
   }
@@ -263,7 +268,8 @@ async function createIssue(
   parentIssue,
   epic,
   story,
-  team
+  team,
+  classification
 ) {
   let issueType = !parentIssue ? "Task" : "Sub-task";
   let request = {
@@ -299,6 +305,10 @@ async function createIssue(
     } else {
       request["fields"]["customfield_10001"] = `${teams[team]}`;
     }
+  }
+
+  if (classification) {
+    request["fields"]["customfield_10036"] = { value: classification };
   }
 
   if (parentIssue) {

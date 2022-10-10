@@ -12,6 +12,7 @@ module.exports = function(input) {
   let epic;
   let story;
   let team;
+  let classification;
 
   for (line of lines) {
     // Ignore blank lines unless we could be in a description
@@ -38,6 +39,9 @@ module.exports = function(input) {
             break;
           case "team":
             team = pairs[1].trim();
+            break;
+          case "classification":
+            classification = pairs[1].trim();
             break;
         }
       }
@@ -96,7 +100,8 @@ module.exports = function(input) {
           storyPoints: storyPoints,
           epic: epic,
           story: story,
-          team: team
+          team: team,
+          classification: classification
         };
       }
 
@@ -145,7 +150,8 @@ module.exports = function(input) {
         storyPoints: storyPoints,
         epic: epic,
         story: story,
-        team: team
+        team: team,
+        classification: classification
       };
       continue;
     }

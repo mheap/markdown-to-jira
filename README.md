@@ -2,8 +2,7 @@
 
 This project is a command line tool to allow you to make markdown-like notes as
 plain text and use them to create Jira tickets. It supports `title`, `description`,
-`assignee` and `components` for both parent and sub-tasks. It does not currently
-support epics.
+`assignee` and `components` for both parent and sub-tasks. 
 
 ## Installation
 
@@ -42,7 +41,7 @@ m2j -f /path/to/file
 Example content:
 
 ```
-- This is an example ticket @michael.heap {Documentation} {Node}
+- This is an example ticket @brandon.kelly {Documentation} {Node}
 ```
 
 ## Ticket format
@@ -56,9 +55,18 @@ Example content:
 
 ### Advanced
 
-If you're using the `-f` option to pass a filename there are additional options available.
+If you're using the `-f` option to pass a filename there are additional options available.  Note that you can also
+put global options in the Front Matter for the file (example provided below).  This includes linking tickets to a 
+specific story and epic.  To do so, simply provide that context at the top of the file.
 
 ```
+---
+epic: AS-12345
+story: AS-12345
+team: Cloud Integrations
+classification: Development
+---
+
 - This is an example ticket @michael.heap {Documentation} {Node} +10
   This is a description for the above title. It will be added 
   automatically and the description can span multiple lines

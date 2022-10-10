@@ -15,7 +15,7 @@
             "program": "${workspaceFolder}/bin/markdown-to-jira",
             "args": [
                 "-f",
-                "${workspaceFolder}/test/AS-13605.md"
+                "${workspaceFolder}/test/AS-13747.md"
             ]
         }
     ]
