@@ -1,4 +1,4 @@
-module.exports = function(input) {
+module.exports = function (input) {
   // Extract ticket titles
   const lines = input.split("\n");
   const tickets = [];

@@ -4,17 +4,17 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "cli-table": "^0.3.5",
-    "commander": "^2.20.3",
-    "jira-client": "^6.21.1",
-    "local-credentials": "0.0.2"
+    "cli-table": "^0.3.11",
+    "commander": "^9.4.1",
+    "jira-client": "^8.1.0",
+    "local-credentials": "0.0.5"
   },
   "devDependencies": {
-    "chai": "^4.3.3",
-    "eslint": "^5.16.0",
-    "eslint-plugin-prettier": "^3.3.1",
-    "mocha": "^6.2.3",
-    "prettier": "^1.19.1"
+    "chai": "^4.3.6",
+    "eslint": "^8.25.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "mocha": "^10.0.0",
+    "prettier": "^2.7.1"
   },
   "scripts": {
     "test": "mocha",
