@@ -67,24 +67,32 @@ let jira;
   });
 
   // A bit of a hack, but the endpoint isn't available in the SDK
-  jira.fetchUsers = function(list) {
-    const names = Array.from(list)
-      .map((n) => {
-        return `&key=${n}`;
-      })
-      .join("");
-    return this.doRequest(
-      this.makeRequestHeader(
-        this.makeUri({
-          pathname: "/user/bulk/migration?maxResults=1000" + names,
-        }),
-        {
-          method: "GET",
-          followAllRedirects: true,
-        }
-      )
-    );
+  jira.fetchUsers = async function(list) {
+    const users = {};
+
+    for (let user of list){
+      const results = await this.doRequest(
+        this.makeRequestHeader(
+          this.makeUri({
+            pathname: "/user/search?query=" + user,
+          }),
+          {
+            method: "GET",
+            followAllRedirects: true,
+          }
+        )
+      );
+
+      if (results.length != 1){
+        throw new Error("Could not identify a single user for " + user);
+      }
+
+      users[user] = results[0].accountId;
+    }
+
+    return users;
   };
+
 
   let content = "";
 
@@ -119,14 +127,7 @@ let jira;
   }
 
   // Map assignee name to IDs
-  const userIds = {};
-  const users = await jira.fetchUsers(userNames);
-  for (const u of users) {
-    if (u.accountId == "unknown") {
-      continue;
-    }
-    userIds[u.key] = u.accountId;
-  }
+  const userIds = await jira.fetchUsers(userNames);
 
   // Validate that all usernames provided were valid
   // Parent tickets
