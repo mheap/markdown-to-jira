@@ -5,7 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "cli-table": "^0.3.11",
-    "commander": "^2.20.3",
+    "commander": "^9.4.1",
     "jira-client": "^8.1.0",
     "local-credentials": "0.0.5"
   },

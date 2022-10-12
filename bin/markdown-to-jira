@@ -14,6 +14,7 @@ const InputParser = require("../src/InputParser");
 const packageDetails = require(path.join(__dirname, "..", "package.json"));
 
 let jira;
+let opts;
 
 (async () => {
   // Allow for command line arguments
@@ -29,12 +30,14 @@ let jira;
     .option("-d, --dry", "Dry run - don't create any tickets")
     .option("-v, --verbose", "Show requests being made")
     .parse(process.argv);
+  
+  opts = program.opts();
 
   // Read the config file if it exists
   let credentials = {};
   try {
     credentials = await new Credentials("~/.atlassian/credentials").get(
-      program.credentials
+      opts.credentials
     );
   } catch (e) {
     console.log("Missing Credentials");
@@ -97,13 +100,13 @@ let jira;
   let content = "";
 
   // Is there a filename? If so read the content from there
-  if (program.file) {
-    content = fs.readFileSync(program.file);
+  if (opts.file) {
+    content = fs.readFileSync(opts.file);
   }
 
   // If a string was provided, use that instead
-  if (program.string) {
-    content = "- " + program.string;
+  if (opts.string) {
+    content = "- " + opts.string;
   }
 
   // Otherwise show an error
@@ -164,7 +167,7 @@ let jira;
 
   for (t of tickets) {
     let parent = await createIssue(
-      program.dry,
+      opts.dry,
       credentials.project,
       t.title,
       t.description,
@@ -182,7 +185,7 @@ let jira;
     // If there are any children, create tickets using the parent key generated above
     for (c of t.children) {
       let child = await createIssue(
-        program.dry,
+        opts.dry,
         credentials.project,
         c.title,
         c.description,
@@ -237,8 +240,8 @@ function createIssue(
   }
 
   // If we're in dry run mode, resolve early with a generated ID
-  if (program.dry) {
-    if (program.verbose) {
+  if (opts.dry) {
+    if (opts.verbose) {
       console.log(util.inspect(request.fields, false, 5));
     }
     let generatedKey = project + "-9999";
