@@ -49,6 +49,7 @@ module.exports = function(input) {
 
       [assignee, line] = extractAssignee(line);
       [components, line] = extractComponents(line);
+      [labels, line] = extractLabels(line);
 
       if (line) {
         ticket = {
@@ -56,7 +57,8 @@ module.exports = function(input) {
           description: "",
           children: [],
           assignee: assignee,
-          components: components
+          components: components,
+          labels: labels,
         };
       }
 
@@ -91,16 +93,19 @@ module.exports = function(input) {
       line = removeLeadingDash(line);
       [assignee, line] = extractAssignee(line);
       [components, line] = extractComponents(line);
+      [labels, line] = extractLabels(line);
 
       // Persist the parent assignee if we don't have one in this line
       assignee = assignee || ticket.assignee;
       components = components.length ? components : ticket.components;
+      labels = labels.length ? labels : ticket.labels;
 
       subTicket = {
         components: components,
+        labels: labels,
         assignee: assignee,
         title: line,
-        description: ""
+        description: "",
       };
       continue;
     }
@@ -157,9 +162,23 @@ function extractComponents(line) {
   let components = [];
 
   if (matches) {
-    components = matches.map(m => m.replace(/[{}]/g, ""));
+    components = matches.map((m) => m.replace(/[{}]/g, ""));
     line = line.replace(new RegExp(matches.join("|"), "g"), "").trim();
   }
 
   return [components, line];
+}
+
+function extractLabels(line) {
+  let re = /#([^\s]+)/g;
+  let matches = line.match(re);
+
+  let labels = [];
+
+  if (matches) {
+    labels = matches.map((m) => m.replace(/#/g, ""));
+    line = line.replace(new RegExp(matches.join("|"), "g"), "").trim();
+  }
+
+  return [labels, line];
 }

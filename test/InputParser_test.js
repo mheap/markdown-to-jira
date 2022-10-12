@@ -47,11 +47,12 @@ const input = `
         expect(actual[0]).to.eql({
             'assignee': '',
             'components': [],
+            'labels': [],
             'title': 'This is a top level ticket',
             'description': '',
             'children': [
-                {'title': 'And this is a sub ticket', 'description': '', 'assignee': '', 'components': []},
-                {'title': 'Plus another one', 'description': '', 'assignee': '', 'components': []}
+                {'title': 'And this is a sub ticket', 'description': '', 'assignee': '', 'components': [], 'labels': []},
+                {'title': 'Plus another one', 'description': '', 'assignee': '', 'components': [], 'labels': []}
             ]
         });
 
@@ -67,10 +68,11 @@ const input = `
         expect(actual[0]).to.eql({
             'assignee': '',
             'components': [],
+            'labels': [],
             'title': 'This is a top level ticket',
             'description': '',
             'children': [
-                {'title': 'And this is a sub ticket', 'description': '', 'assignee': '', 'components': []}
+                {'title': 'And this is a sub ticket', 'description': '', 'assignee': '', 'components': [], 'labels': []}
             ]
         });
 
@@ -89,6 +91,7 @@ const input = `
         expect(actual[0]).to.eql({
             'assignee': '',
             'components': [],
+            'labels': [],
             'title': 'This is a top level ticket',
             'description': "Along with some description that\nspans multiple lines\n\nIncluding blank lines\n",
             'children': []
@@ -105,6 +108,7 @@ const input = `
         expect(actual[0]).to.eql({
             'assignee': '',
             'components': [],
+            'labels': [],
             'title': 'This is a top level ticket',
             'description': "Along with some description\n",
             'children': []
@@ -124,11 +128,13 @@ const input = `
         expect(actual[0]).to.eql({
             'assignee': '',
             'components': [],
+            'labels': [],
             'title': 'This is a top level ticket',
             'description': '',
             'children': [{
                 'assignee': '',
-            'components': [],
+                'components': [],
+                'labels': [],
                 'title': 'And a subticket',
                 'description': "With a subticket description that is\nspread across multiple lines\n"
             }]
@@ -146,6 +152,7 @@ const input = `
             'title': 'this is a ticket',
             'assignee': 'michael.heap',
             'components': [],
+            'labels': [],
             'description': '',
             'children': []
         });
@@ -169,18 +176,20 @@ const input = `
             'title': 'This is a ticket',
             'assignee': 'michael.heap',
             'components': [],
+            'labels': [],
             'description': '',
             'children': [{
                 'title': 'And this is a subticket',
                 'assignee': 'michael.heap',
-            'components': [],
+                'components': [],
+                'labels': [],
                 'description': '',
             }]
         });
 
     });
 
-    it('should allow overrides for subtickets', function() {
+    it('should allow assignee overrides for subtickets', function() {
 let input = `
 - This is a ticket @michael.heap
   - And this is a subticket @another.user
@@ -191,11 +200,13 @@ let input = `
             'title': 'This is a ticket',
             'assignee': 'michael.heap',
             'components': [],
+            'labels': [],
             'description': '',
             'children': [{
                 'title': 'And this is a subticket',
                 'assignee': 'another.user',
-            'components': [],
+                'components': [],
+                'labels': [],
                 'description': '',
             }]
         });
@@ -213,15 +224,63 @@ let input = `
             'title': 'This is a ticket',
             'assignee': '',
             'components': ['Nexmo Developer', 'Another'],
+            'labels': [],
             'description': '',
             'children': [{
                 'title': 'Child ticket with inherited components',
                 'assignee': '',
                 'description': '',
                 'components': ['Nexmo Developer', 'Another'],
+                'labels': [],
             }]
         });
 
+    });
+
+    it('should capture labels in parent tickets and use them in child tickets', function() {
+let input = `
+- This is a ticket #label1 #label2
+  - Child ticket with inherited components
+`;
+
+        const actual = InputParser(input);
+        expect(actual[0]).to.eql({
+            'title': 'This is a ticket',
+            'assignee': '',
+            'components': [],
+            'labels': ["label1", "label2"],
+            'description': '',
+            'children': [{
+                'title': 'Child ticket with inherited components',
+                'assignee': '',
+                'description': '',
+                'components': [],
+                'labels': ["label1", "label2"],
+            }]
+        });
+    });
+
+    it('should should allow the override of labels in child tickets', function() {
+let input = `
+- This is a ticket #label1 #label2
+  - Child ticket with inherited components #label3
+`;
+
+        const actual = InputParser(input);
+        expect(actual[0]).to.eql({
+            'title': 'This is a ticket',
+            'assignee': '',
+            'components': [],
+            'labels': ["label1", "label2"],
+            'description': '',
+            'children': [{
+                'title': 'Child ticket with inherited components',
+                'assignee': '',
+                'description': '',
+                'components': [],
+                'labels': ["label3"],
+            }]
+        });
     });
 
 
@@ -235,15 +294,15 @@ let input = `
         expect(actual[0]).to.eql({
             'title': 'This is a ticket',
             'assignee': '',
-            'components': [],
             'components': ['Nexmo Developer', 'Another'],
+            'labels': [],
             'description': '',
             'children': [{
                 'title': 'Child ticket with inherited components',
                 'assignee': '',
-            'components': [],
                 'description': '',
                 'components': ['Foo'],
+                'labels': [],
             }]
         });
 
