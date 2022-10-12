@@ -30,7 +30,7 @@ let opts;
     .option("-d, --dry", "Dry run - don't create any tickets")
     .option("-v, --verbose", "Show requests being made")
     .parse(process.argv);
-  
+
   opts = program.opts();
 
   // Read the config file if it exists
@@ -70,10 +70,10 @@ let opts;
   });
 
   // A bit of a hack, but the endpoint isn't available in the SDK
-  jira.fetchUsers = async function(list) {
+  jira.fetchUsers = async function (list) {
     const users = {};
 
-    for (let user of list){
+    for (let user of list) {
       const results = await this.doRequest(
         this.makeRequestHeader(
           this.makeUri({
@@ -86,7 +86,7 @@ let opts;
         )
       );
 
-      if (results.length != 1){
+      if (results.length != 1) {
         throw new Error("Could not identify a single user for " + user);
       }
 
@@ -95,7 +95,6 @@ let opts;
 
     return users;
   };
-
 
   let content = "";
 
