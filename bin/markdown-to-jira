@@ -171,7 +171,8 @@ let opts;
       t.title,
       t.description,
       t.assignee.id,
-      t.components
+      t.components,
+      t.labels
     );
     table.push([
       parent.key,
@@ -190,6 +191,7 @@ let opts;
         c.description,
         c.assignee.id,
         c.components,
+        c.labels,
         parent.key
       );
       table.push([
@@ -212,6 +214,7 @@ function createIssue(
   description,
   assignee,
   components,
+  labels,
   parentIssue
 ) {
   let issueType = !parentIssue ? "Task" : "Sub-task";
@@ -231,6 +234,7 @@ function createIssue(
       issuetype: {
         name: issueType,
       },
+      labels: labels
     },
   };
 
